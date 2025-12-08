@@ -26,6 +26,8 @@ To automatically add readings to Japanese text:
 #show-ruby(sample)
 ```
 
+![sample](./package/images/sample.png)
+
 ### Morphological Analysis Table
 
 To debug or display the linguistic structure of the text:
@@ -37,7 +39,7 @@ To debug or display the linguistic structure of the text:
 #show-analysis-table("すももも桃も桃のうち")
 ```
 
-![table](./package/img/table.png)
+![table](./package/images/table.png)
 
 ## API Reference
 

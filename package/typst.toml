@@ -8,4 +8,4 @@ description = "Automatic Ruby Generation"
 compiler = "0.13.1"
 repository = "https://github.com/rice8y/auto-jrubby"
 keywords = ["ruby", "ルビ", "furigana", "振り仮名", "ふりがな", "Japanese"]
-exclude = ["./img"]
+exclude = ["./images"]
