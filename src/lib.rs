@@ -127,7 +127,28 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         Err(e) => return format!("Error: Tokenization failed: {}", e).into_bytes(),
     };
 
-    let result_list: Vec<TokenInfo> = tokens.iter_mut().map(|token| {
+    let mut result_list: Vec<TokenInfo> = Vec::new();
+    let mut cursor_byte = 0;
+    let text_bytes = params.text.as_bytes();
+
+    for token in tokens.iter_mut() {
+        if token.byte_start > cursor_byte {
+            let gap_slice = &text_bytes[cursor_byte..token.byte_start];
+            let gap_text = String::from_utf8_lossy(gap_slice).to_string();
+            
+            result_list.push(TokenInfo {
+                surface: gap_text.clone(),
+                pos: "Whitespace".to_string(),
+                sub_pos: "*".to_string(),
+                reading: gap_text.clone(),
+                base: gap_text.clone(),
+                ruby_segments: vec![RubySegment {
+                    text: gap_text,
+                    ruby: "".to_string(),
+                }],
+            });
+        }
+
         let surface = token.surface.to_string();
         let details = token.details(); 
         let get_detail = |idx: usize| details.get(idx).map(|s| s.as_ref()).unwrap_or("*").to_string();
@@ -137,15 +158,34 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
 
         let ruby_segments = build_ruby_segments(&surface, &reading);
 
-        TokenInfo {
+        result_list.push(TokenInfo {
             surface,
             pos,
             sub_pos: get_detail(1),
             base: get_detail(6),
             reading,
             ruby_segments,
-        }
-    }).collect();
+        });
+
+        cursor_byte = token.byte_end;
+    }
+
+    if cursor_byte < text_bytes.len() {
+        let gap_slice = &text_bytes[cursor_byte..];
+        let gap_text = String::from_utf8_lossy(gap_slice).to_string();
+        
+        result_list.push(TokenInfo {
+            surface: gap_text.clone(),
+            pos: "Whitespace".to_string(),
+            sub_pos: "*".to_string(),
+            reading: gap_text.clone(),
+            base: gap_text.clone(),
+            ruby_segments: vec![RubySegment {
+                text: gap_text,
+                ruby: "".to_string(),
+            }],
+        });
+    }
 
     match serde_json::to_vec(&result_list) {
         Ok(bytes) => bytes,
