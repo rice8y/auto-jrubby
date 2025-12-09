@@ -1,5 +1,6 @@
-#let plugin = plugin("auto_jrubby.wasm")
 #import "@preview/rubby:0.10.2": get-ruby
+
+#let plugin = plugin("auto_jrubby.wasm")
 
 #let tokenize(input-text) = {
   let params = (text: input-text)
@@ -23,7 +24,7 @@
   )
 }
 
-#let show-ruby(input-text, size: 0.5em, ruby-func: auto) = {
+#let show-ruby(input-text, size: 0.5em, leading: 1.5em, ruby-func: auto) = {
   let tokens = tokenize(input-text)
   
   let cmd = if ruby-func == auto {
@@ -32,7 +33,7 @@
     ruby-func
   }
 
-  par(leading: 1.5em)[
+  par(leading: leading)[
     #for t in tokens {
       for seg in t.ruby_segments {
         if seg.ruby == "" {
