@@ -14,7 +14,8 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 
 ## Usage
 
-> [!NOTE] **Status as of December 9, 2025** This package has not yet been registered to Typst Universe. While the usage examples below use the `@preview` namespace, please install it manually and use `@local` instead.
+> [!WARNING]
+>  **Status as of December 9, 2025** This package has not yet been registered to Typst Universe. While the usage examples below use the `@preview` namespace, please install it manually and use `@local` instead.
 > To install and use:
 > ```bash
 > cd package
@@ -36,7 +37,7 @@ To automatically add readings to Japanese text:
 #show-ruby(sample)
 ```
 
-![sample](./package/images/sample.png)
+![sample](./images/sample.png)
 
 ### Morphological Analysis Table
 
@@ -48,7 +49,7 @@ To debug or display the linguistic structure of the text:
 #show-analysis-table("すももも桃も桃のうち")
 ```
 
-![table](./package/images/table.png)
+![table](./images/table.png)
 
 ## API Reference
 

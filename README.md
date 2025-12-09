@@ -14,7 +14,8 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 
 ## Usage
 
-> [!NOTE] **Status as of December 9, 2025** This package has not yet been registered to Typst Universe. While the usage examples below use the `@preview` namespace, please install it manually and use `@local` instead.
+> [!WARNING]
+>  **Status as of December 9, 2025** This package has not yet been registered to Typst Universe. While the usage examples below use the `@preview` namespace, please install it manually and use `@local` instead.
 > To install and use:
 > ```bash
 > cd package
