@@ -15,7 +15,8 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 ## Usage
 
 > [!WARNING]
->  **Status as of December 9, 2025** This package has not yet been registered to Typst Universe. While the usage examples below use the `@preview` namespace, please install it manually and use `@local` instead.
+>  **Status as of December 9, 2025**  
+> The latest version **0.1.1** is not yet available on Typst Universe. Although the examples below use the `@preview` namespace, please install the package manually and use `@local` instead.
 > To install and use:
 > ```bash
 > cd package
@@ -23,14 +24,14 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 > ```
 >
 > ```typst
-> #import "@local/auto-jrubby:0.1.0": *
-> ```
+> #import "@local/auto-jrubby:0.1.1": *
+> ````
 
 ### Basic Furigana
 
 To automatically add readings to Japanese text:
 ```typst
-#import "@preview/auto-jrubby:0.1.0": *
+#import "@preview/auto-jrubby:0.1.1": *
 #set text(font: "Hiragino Sans", lang: "ja")
 
 #let sample = "ルビ（英語: ruby）は、文章内の任意の文字に対しふりがなや説明、異なる読み方といった役割の本文の横に付属される文字。"
@@ -43,7 +44,7 @@ To automatically add readings to Japanese text:
 
 To debug or display the linguistic structure of the text:
 ```typst
-#import "@preview/auto-jrubby:0.1.0": *
+#import "@preview/auto-jrubby:0.1.1": *
 #set text(font: "Hiragino Sans", lang: "ja")
 
 #show-analysis-table("すももも桃も桃のうち")
@@ -64,6 +65,7 @@ Renders the input text with automatic furigana.
 
   - `input-text` (string): The Japanese text to analyze and render.
   - `size` (length): The font size of the ruby text. Defaults to `0.5em`.
+  - `leading` (length): The vertical space between the text and its ruby. Defaults to `1.5em`.
   - `ruby-func` (function | auto): A custom ruby function from the `rubby` package.
       - If `auto`, it uses the default configuration (`get-ruby(size: size)`).
       - If provided, it allows advanced customization of ruby positioning (e.g., specific `pos` or `alignment`).
