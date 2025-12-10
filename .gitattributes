@@ -1,0 +1,1 @@
+package/ipadic_neologd.wasm filter=lfs diff=lfs merge=lfs -text
