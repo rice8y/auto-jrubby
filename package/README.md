@@ -10,7 +10,7 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 - **Smart Okurigana Alignment:** Intelligent handling of mixed Kanji/Hiragana words (e.g., `食べる` is rendered with ruby `た` over `食`, leaving `べる` untouched).
 - **Morphological Analysis Table:** Visualize the text structure (Part of Speech, Detailed POS, Readings, Base forms) via a formatted data table.
 - **Customizable Styling:** Supports custom ruby sizing and positioning via the `rubby` package backend.
-- **High Performance:** Powered by a Rust WASM plugin using **Lindera** (IPADIC) for fast and accurate tokenization.
+- **High Performance:** Powered by a Rust WASM plugin using **Lindera** for fast and accurate tokenization.
 
 ## Usage
 
