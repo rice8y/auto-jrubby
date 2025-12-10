@@ -14,7 +14,7 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 
 ## Usage
 
-> [!WARNING]
+<!-- > [!WARNING]
 >  **Status as of December 10, 2025**  
 > The latest version **0.2.0** is not yet available on Typst Universe. Although the examples below use the `@preview` namespace, please install the package manually and use `@local` instead.
 > To install and use:
@@ -25,7 +25,7 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 >
 > ```typst
 > #import "@local/auto-jrubby:0.2.0": *
-> ```
+> ``` -->
 
 ### Basic Furigana
 
