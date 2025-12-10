@@ -5,8 +5,8 @@
 }
 
 #let tokenize(input-text, user-dict: none, dict: "ipadic") = {
-　if dict not in ("ipadic", "ipadic-neologd", "unidic") {
-    panic("dict must be one of: ipadic, ipadic-neologd, unidic")
+　if dict not in ("ipadic", "unidic") {
+    panic("dict must be one of: ipadic, unidic")
   }
 
   let plugin = plugin(dict.replace("-", "_") + ".wasm")
