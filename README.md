@@ -34,7 +34,7 @@ To automatically add readings to Japanese text:
 #import "@preview/auto-jrubby:0.2.0": *
 #set text(font: "Hiragino Sans", lang: "ja")
 
-#let sample = "ルビ（英語: ruby）は、文章内の任意の文字に対しふりがなや説明、異なる読み方といった役割の本文の横に付属される文字。"
+#let sample = "ルビ(英語: ruby)は、文章内の任意の文字に対しふりがなや説明、異なる読み方といった役割の本文の横に付属される文字。"
 #show-ruby(sample)
 ```
 
@@ -87,7 +87,6 @@ Renders the input text with automatic furigana.
   - If `none`: No user dictionary is used.
 - `dict` (string): The dictionary to use for tokenization. Must be one of:
   - `"ipadic"` (default): Standard Japanese dictionary
-  - `"ipadic-neologd"`: Extended dictionary with newer terms and proper nouns
   - `"unidic"`: Alternative dictionary with different grammatical analysis
 
 ### `show-analysis-table`
@@ -106,7 +105,7 @@ Renders a table displaying the morphological breakdown of the text.
 
 - `input-text` (string): The text to analyze.
 - `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
-- `dict` (string): The dictionary to use. Must be one of: `"ipadic"`, `"ipadic-neologd"`, or `"unidic"`.
+- `dict` (string): The dictionary to use. Must be one of: `"ipadic"` or `"unidic"`.
 
 **Table Columns:**
 
@@ -132,7 +131,7 @@ Low-level function that returns the raw JSON data from the WASM plugin. Useful i
 
 - `input-text` (string): The text to tokenize.
 - `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
-- `dict` (string): The dictionary to use. Must be one of: `"ipadic"`, `"ipadic-neologd"`, or `"unidic"`.
+- `dict` (string): The dictionary to use. Must be one of: `"ipadic"` or `"unidic"`.
 
 **Returns:** An array of dictionaries containing:
 - `surface`: The surface form of the token
@@ -195,10 +194,9 @@ $ cat user_dict.csv
 
 ## Under the Hood
 
-This package uses **Lindera** (a Rust port of Kuromoji) with three available dictionary options:
+This package uses **Lindera** (a Rust port of Kuromoji) with two available dictionary options:
 
 - **IPADIC**: Standard Japanese morphological dictionary
-- **IPADIC-NEologd**: Extended version with contemporary terms and named entities
 - **UniDic**: Alternative dictionary with different part-of-speech classifications
 
 The processing workflow:
@@ -207,6 +205,41 @@ The processing workflow:
 2. Lindera tokenizes the text using the specified dictionary and retrieves readings.
 3. A custom algorithm aligns the readings with the surface form to separate okurigana (kana endings of verbs/adjectives) from the kanji stems.
 4. The structured data is returned to Typst and rendered using the `rubby` package for furigana display.
+
+## Optional: Enabling IPADIC-NEologd
+
+> [!NOTE]
+> **IPADIC-NEologd Support**  
+> IPADIC-NEologd (an extended dictionary with contemporary terms and named entities) has been removed from the default distribution due to its large file size. However, you can manually enable it if needed:
+>
+> 1. Navigate to `./wasm-plugins/ipadic-neologd` and build the WASM module:
+>    ```bash
+>    cargo build --target wasm32-unknown-unknown --release
+>    ```
+>
+> 2. Update `./package/lib.typ` to allow the `ipadic-neologd` option. Change:
+>    ```typst
+>    if dict not in ("ipadic", "unidic") {
+>      panic("dict must be one of: ipadic, unidic")
+>    }
+>    ```
+>    to:
+>    ```typst
+>    if dict not in ("ipadic", "ipadic-neologd", "unidic") {
+>      panic("dict must be one of: ipadic, ipadic-neologd, unidic")
+>    }
+>    ```
+>
+> 3. Install the package locally:
+>    ```bash
+>    just install
+>    ```
+>
+> 4. Import and use with `@local`:
+>    ```typst
+>    #import "@local/auto-jrubby:0.2.0": *
+>    #show-ruby("text", dict: "ipadic-neologd")
+>    ```
 
 ## License
 
