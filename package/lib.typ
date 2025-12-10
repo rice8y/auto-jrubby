@@ -1,17 +1,42 @@
 #import "@preview/rubby:0.10.2": get-ruby
 
-#let plugin = plugin("auto_jrubby.wasm")
+#let csv-array-to-string(data, delimiter: ",") = {
+  data.map(row => row.join(delimiter)).join("\n")
+}
 
-#let tokenize(input-text) = {
-  let params = (text: input-text)
+#let tokenize(input-text, user-dict: none, dict: "ipadic") = {
+　if dict not in ("ipadic", "ipadic-neologd", "unidic") {
+    panic("dict must be one of: ipadic, ipadic-neologd, unidic")
+  }
+
+  let plugin = plugin(dict.replace("-", "_") + ".wasm")
+
+  let user-dict-csv = if user-dict != none {
+    if type(user-dict) == str {
+      user-dict
+    } else if type(user-dict) == array {
+      csv-array-to-string(user-dict)
+    } else {
+      panic("user-dict must be a string or array")
+    }
+  } else {
+    none
+  }
+  
+  let params = if user-dict-csv != none {
+    (text: input-text, user_dict_csv: user-dict-csv)
+  } else {
+    (text: input-text)
+  }
+  
   let result-bytes = plugin.analyze(bytes(json.encode(params)))
   let result-str = str(result-bytes)
   if result-str.starts-with("Error:") { panic(result-str) }
   json(result-bytes)
 }
 
-#let show-analysis-table(input-text) = {
-  let tokens = tokenize(input-text)
+#let show-analysis-table(input-text, user-dict: none, dict: "ipadic") = {
+  let tokens = tokenize(input-text, user-dict: user-dict, dict: dict)
   table(
     columns: (auto, auto, auto, auto, auto),
     inset: 8pt,
@@ -24,8 +49,8 @@
   )
 }
 
-#let show-ruby(input-text, size: 0.5em, leading: 1.5em, ruby-func: auto) = {
-  let tokens = tokenize(input-text)
+#let show-ruby(input-text, size: 0.5em, leading: 1.5em, ruby-func: auto, user-dict: none, dict: "ipadic") = {
+  let tokens = tokenize(input-text, user-dict: user-dict, dict: dict)
   
   let cmd = if ruby-func == auto {
     get-ruby(size: size)
