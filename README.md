@@ -238,7 +238,8 @@ The processing workflow:
 > 4. Import and use with `@local`:
 >    ```typst
 >    #import "@local/auto-jrubby:0.2.0": *
->    #show-ruby("text", dict: "ipadic-neologd")
+>    #let sample = "東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です"
+>    #show-ruby(sample, dict: "ipadic-neologd")
 >    ```
 
 ## License
