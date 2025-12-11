@@ -16,7 +16,7 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 
 <!-- > [!WARNING]
 >  **Status as of December 10, 2025**  
-> The latest version **0.2.0** is not yet available on Typst Universe. Although the examples below use the `@preview` namespace, please install the package manually and use `@local` instead.
+> The latest version **0.3.0** is not yet available on Typst Universe. Although the examples below use the `@preview` namespace, please install the package manually and use `@local` instead.
 > To install and use:
 > ```bash
 > cd package
@@ -24,14 +24,14 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 > ```
 >
 > ```typst
-> #import "@local/auto-jrubby:0.2.0": *
+> #import "@local/auto-jrubby:0.3.0": *
 > ``` -->
 
 ### Basic Furigana
 
 To automatically add readings to Japanese text:
 ```typst
-#import "@preview/auto-jrubby:0.2.0": *
+#import "@preview/auto-jrubby:0.3.0": *
 #set text(font: "Hiragino Sans", lang: "ja")
 
 #let sample = "ルビ(英語: ruby)は、文章内の任意の文字に対しふりがなや説明、異なる読み方といった役割の本文の横に付属される文字。"
@@ -44,7 +44,7 @@ To automatically add readings to Japanese text:
 
 To debug or display the linguistic structure of the text:
 ```typst
-#import "@preview/auto-jrubby:0.2.0": *
+#import "@preview/auto-jrubby:0.3.0": *
 #set text(font: "Hiragino Sans", lang: "ja")
 
 #show-analysis-table("すももも桃も桃のうち")
@@ -54,15 +54,11 @@ To debug or display the linguistic structure of the text:
 
 ## API Reference
 
-# Typst Japanese Morphological Analysis Package
-
-## API Reference
-
 ### `show-ruby`
 
 Renders the input text with automatic furigana.
 
-```typst
+```typc
 #let show-ruby(
   input-text,
   size: 0.5em,
@@ -93,33 +89,63 @@ Renders the input text with automatic furigana.
 
 Renders a table displaying the morphological breakdown of the text.
 
-```typst
+```typc
 #let show-analysis-table(
   input-text,
   user-dict: none,
   dict: "ipadic"
 )
-```
+````
 
 **Parameters:**
 
-- `input-text` (string): The text to analyze.
-- `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
-- `dict` (string): The dictionary to use. Must be one of: `"ipadic"` or `"unidic"`.
+  - `input-text` (string): The text to analyze.
+  - `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
+  - `dict` (string): The dictionary to use. Must be one of: `"ipadic"` (default) or `"unidic"`.
 
 **Table Columns:**
 
-1. **Surface Form (表層形):** The word as it appears in the text.
-2. **Part of Speech (品詞):** Grammatical category (Noun, Verb, etc.).
-3. **Details (詳細):** Sub-category (e.g., Proper Noun, Suffix).
-4. **Reading (読み):** Katakana reading.
-5. **Base Form (基本形):** The dictionary form of the word.
+The columns displayed depend on the selected `dict`.
+
+**If `dict: "ipadic"` (10 columns):**
+
+1.  **Surface Form (表層形):** The word as it appears in the text.
+2.  **Part of Speech (品詞):** Grammatical category (Noun, Verb, etc.).
+3.  **POS Subcategory 1 (品詞細分類1)**
+4.  **POS Subcategory 2 (品詞細分類2)**
+5.  **POS Subcategory 3 (品詞細分類3)**
+6.  **Conjugation Form (活用形)**
+7.  **Conjugation Type (活用型)**
+8.  **Base Form (原形):** The dictionary form of the word.
+9.  **Reading (読み):** Katakana reading.
+10. **Pronunciation (発音)**
+
+**If `dict: "unidic"` (18 columns):**
+
+1.  **Surface Form (表層形)**
+2.  **POS Major (品詞大分類)**
+3.  **POS Medium (品詞中分類)**
+4.  **POS Minor (品詞小分類)**
+5.  **POS Fine (品詞細分類)**
+6.  **Conjugation Type (活用型)**
+7.  **Conjugation Form (活用形)**
+8.  **Lexeme Reading (語彙素読み)**
+9.  **Lexeme (語彙素)**
+10. **Orthographic Surface (書字形出現形)**
+11. **Phonological Surface (発音形出現形)**
+12. **Orthographic Base (書字形基本形)**
+13. **Phonological Base (発音形基本形)**
+14. **Word Type (語種)**
+15. **Initial Mutation Type (語頭変化型)**
+16. **Initial Mutation Form (語頭変化形)**
+17. **Final Mutation Type (語末変化型)**
+18. **Final Mutation Form (語末変化形)**
 
 ### `tokenize`
 
 Low-level function that returns the raw JSON data from the WASM plugin. Useful if you want to process the analysis data manually.
 
-```typst
+```typc
 #let tokenize(
   input-text,
   user-dict: none,
@@ -145,7 +171,7 @@ Low-level function that returns the raw JSON data from the WASM plugin. Useful i
 
 The user dictionary allows you to define custom word segmentation and readings. It uses a simple CSV format with three columns:
 
-```
+```csv
 <surface>,<part_of_speech>,<reading>
 ```
 
@@ -167,7 +193,7 @@ The user dictionary allows you to define custom word segmentation and readings. 
 
 **Method 2: Array of arrays**
 
-```typst
+```typc
 #let user-dict-array = (
   ("東京スカイツリー", "カスタム名詞", "トウキョウスカイツリー"),
   ("東武スカイツリーライン", "カスタム名詞", "トウブスカイツリーライン"),
@@ -208,6 +234,7 @@ The processing workflow:
 
 ## Optional: Enabling IPADIC-NEologd
 
+
 > [!NOTE]
 > **IPADIC-NEologd Support**  
 > IPADIC-NEologd (an extended dictionary with contemporary terms and named entities) has been removed from the default distribution due to its large file size. However, you can manually enable it if needed:
@@ -242,7 +269,7 @@ The processing workflow:
 >
 > 5. Import and use with `@local`:
 >    ```typst
->    #import "@local/auto-jrubby:0.2.0": *
+>    #import "@local/auto-jrubby:0.3.0": *
 >    #let sample = "東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です"
 >    #show-ruby(sample, dict: "ipadic-neologd")
 >    ```
