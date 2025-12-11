@@ -155,18 +155,16 @@ Low-level function that returns the raw JSON data from the WASM plugin. Useful i
 
 **Parameters:**
 
-- `input-text` (string): The text to tokenize.
-- `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
-- `dict` (string): The dictionary to use. Must be one of: `"ipadic"` or `"unidic"`.
+  - `input-text` (string): The text to tokenize.
+  - `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
+  - `dict` (string): The dictionary to use. Must be one of: `"ipadic"` or `"unidic"`.
 
 **Returns:** An array of dictionaries containing:
-- `surface`: The surface form of the token
-- `pos`: Part of speech
-- `sub_pos`: Sub-category of the part of speech
-- `reading`: Katakana reading
-- `base`: Base (dictionary) form
-- `ruby_segments`: Array of segments with `text` and `ruby` fields for furigana rendering
 
+  - `surface` (string): The surface form of the token.
+  - `details` (array of strings): The raw detailed information for the token. The content and length depend on the dictionary used (e.g., POS, conjugation, reading, etc.).
+  - `ruby_segments` (array of dictionaries): A pre-calculated list of segments for furigana, where each item has `text` and `ruby` fields.
+  
 ## User Dictionary Format
 
 The user dictionary allows you to define custom word segmentation and readings. It uses a simple CSV format with three columns:
