@@ -217,7 +217,12 @@ The processing workflow:
 >    cargo build --target wasm32-unknown-unknown --release
 >    ```
 >
-> 2. Update `./package/lib.typ` to allow the `ipadic-neologd` option. Change:
+> 2. Copy the built WASM file to the package directory:
+>    ```bash
+>    cp ./target/wasm32-unknown-unknown/release/ipadic_neologd.wasm ../../package/ipadic_neologd.wasm
+>    ```
+>
+> 3. Navigate to `./package` and update `./package/lib.typ` to allow the `ipadic-neologd` option. Change:
 >    ```typst
 >    if dict not in ("ipadic", "unidic") {
 >      panic("dict must be one of: ipadic, unidic")
@@ -230,12 +235,12 @@ The processing workflow:
 >    }
 >    ```
 >
-> 3. Install the package locally:
+> 4. Install the package locally:
 >    ```bash
 >    just install
 >    ```
 >
-> 4. Import and use with `@local`:
+> 5. Import and use with `@local`:
 >    ```typst
 >    #import "@local/auto-jrubby:0.2.0": *
 >    #let sample = "東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です"
