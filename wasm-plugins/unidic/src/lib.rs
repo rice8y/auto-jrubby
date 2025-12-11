@@ -32,10 +32,7 @@ struct RubySegment {
 #[derive(Serialize)]
 struct TokenInfo {
     surface: String,
-    pos: String,
-    sub_pos: String,
-    reading: String,
-    base: String,
+    details: Vec<String>, 
     ruby_segments: Vec<RubySegment>, 
 }
 
@@ -121,15 +118,10 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         Err(e) => return format!("Error: Invalid JSON: {}", e).into_bytes(),
     };
 
-    // 1. Get the system dictionary (cheap reference)
     let dictionary = get_dictionary().clone();
 
-    // 2. Load User Dictionary if provided
     let user_dictionary = if let Some(csv_data) = params.user_dict_csv {
-        // Create a builder using the metadata from the system dictionary
         let builder = DictionaryBuilder::new(dictionary.metadata.clone());
-        
-        // Build the user dictionary from the CSV string bytes
         match UserDictionaryLoader::load_from_csv_data(builder, csv_data.as_bytes()) {
             Ok(ud) => Some(ud),
             Err(e) => return format!("Error: Failed to build user dictionary: {}", e).into_bytes(),
@@ -138,8 +130,6 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         None
     };
 
-    // 3. Create Segmenter and Tokenizer
-    // If a user dictionary is present, this creates a fresh tokenizer combining both.
     let segmenter = Segmenter::new(Mode::Normal, dictionary, user_dictionary);
     let tokenizer = Tokenizer::new(segmenter);
 
@@ -152,17 +142,20 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
     let mut cursor_byte = 0;
     let text_bytes = params.text.as_bytes();
 
+    // UniDic has 17 detail columns (Index 4 to 20)
+    let dummy_details = vec!["*".to_string(); 17];
+
     for token in tokens.iter_mut() {
         if token.byte_start > cursor_byte {
             let gap_slice = &text_bytes[cursor_byte..token.byte_start];
             let gap_text = String::from_utf8_lossy(gap_slice).to_string();
             
+            let mut gap_details = dummy_details.clone();
+            gap_details[0] = "Whitespace".to_string();
+
             result_list.push(TokenInfo {
                 surface: gap_text.clone(),
-                pos: "Whitespace".to_string(),
-                sub_pos: "*".to_string(),
-                reading: gap_text.clone(),
-                base: gap_text.clone(),
+                details: gap_details,
                 ruby_segments: vec![RubySegment {
                     text: gap_text,
                     ruby: "".to_string(),
@@ -171,20 +164,18 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         }
 
         let surface = token.surface.to_string();
-        let details = token.details(); 
-        let get_detail = |idx: usize| details.get(idx).map(|s| s.as_ref()).unwrap_or("*").to_string();
+        let details_vec: Vec<String> = token.details().iter().map(|s| s.to_string()).collect();
         
-        let pos = get_detail(0);
-        let reading = get_detail(7);
+        // UniDic Reading is at Index 10 in CSV, which corresponds to details[6]
+        // (Source indices 0-3 are Surface/Contexts/Cost, removed in details)
+        // 10 - 4 = 6
+        let reading = details_vec.get(6).map(|s| s.as_str()).unwrap_or("*");
 
-        let ruby_segments = build_ruby_segments(&surface, &reading);
+        let ruby_segments = build_ruby_segments(&surface, reading);
 
         result_list.push(TokenInfo {
             surface,
-            pos,
-            sub_pos: get_detail(1),
-            base: get_detail(6),
-            reading,
+            details: details_vec,
             ruby_segments,
         });
 
@@ -195,12 +186,12 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         let gap_slice = &text_bytes[cursor_byte..];
         let gap_text = String::from_utf8_lossy(gap_slice).to_string();
         
+        let mut gap_details = dummy_details.clone();
+        gap_details[0] = "Whitespace".to_string();
+
         result_list.push(TokenInfo {
             surface: gap_text.clone(),
-            pos: "Whitespace".to_string(),
-            sub_pos: "*".to_string(),
-            reading: gap_text.clone(),
-            base: gap_text.clone(),
+            details: gap_details,
             ruby_segments: vec![RubySegment {
                 text: gap_text,
                 ruby: "".to_string(),
