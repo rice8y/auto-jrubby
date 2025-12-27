@@ -142,7 +142,6 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
     let mut cursor_byte = 0;
     let text_bytes = params.text.as_bytes();
 
-    // UniDic has 17 detail columns (Index 4 to 20)
     let dummy_details = vec!["*".to_string(); 17];
 
     for token in tokens.iter_mut() {
@@ -166,10 +165,27 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         let surface = token.surface.to_string();
         let details_vec: Vec<String> = token.details().iter().map(|s| s.to_string()).collect();
         
-        // UniDic Reading is at Index 10 in CSV, which corresponds to details[6]
-        // (Source indices 0-3 are Surface/Contexts/Cost, removed in details)
-        // 10 - 4 = 6
-        let reading = details_vec.get(6).map(|s| s.as_str()).unwrap_or("*");
+        // details[4] corresponds to UniDic CSV Index 8: "Conjugation Type" (活用型).
+        // If it is "*", the word is likely a noun/particle that doesn't conjugate.
+        // If it is NOT "*", it is a verb/adjective/auxiliary that has a specific form.
+        let conjugation_type = details_vec.get(4).map(|s| s.as_str()).unwrap_or("*");
+        let is_conjugated = conjugation_type != "*";
+
+        let reading_idx = if is_conjugated {
+            // Case: Conjugated (Verb/Adj).
+            // Use Index 9 (CSV Index 13: Phonological Surface Form / 発音形出現形).
+            // Example: "し" -> "シ" (Correct), "走っ" -> "ハシッ" (Correct).
+            // If we used Lemma here, "し" would become "スル" (Incorrect).
+            9
+        } else {
+            // Case: Not Conjugated (Noun, etc).
+            // Use Index 6 (CSV Index 10: Lemma Reading / 語彙素読み).
+            // Example: "王様" -> "オウサマ" (Correct Orthography).
+            // If we used Phonological here, "王様" might become "オーサマ" (Incorrect for Ruby).
+            6
+        };
+
+        let reading = details_vec.get(reading_idx).map(|s| s.as_str()).unwrap_or("*");
 
         let ruby_segments = build_ruby_segments(&surface, reading);
 
