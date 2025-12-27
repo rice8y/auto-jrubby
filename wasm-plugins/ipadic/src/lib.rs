@@ -142,8 +142,6 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
     let mut cursor_byte = 0;
     let text_bytes = params.text.as_bytes();
 
-    // IPADICのフォーマットに合わせて空白用のダミー詳細を作成 ("*" で埋める)
-    // IPADIC details: [品詞, 品詞細分類1, 品詞細分類2, 品詞細分類3, 活用形, 活用型, 原形, 読み, 発音] (計9個)
     let dummy_details = vec!["*".to_string(); 9];
 
     for token in tokens.iter_mut() {
@@ -165,10 +163,8 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         }
 
         let surface = token.surface.to_string();
-        // token.details() はSurface以外のCSV列を返します
         let details_vec: Vec<String> = token.details().iter().map(|s| s.to_string()).collect();
-        
-        // IPADICの読み(Reading)はインデックス7
+    
         let reading = details_vec.get(7).map(|s| s.as_str()).unwrap_or("*");
 
         let ruby_segments = build_ruby_segments(&surface, reading);
