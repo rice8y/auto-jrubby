@@ -44,6 +44,86 @@ fn hira_to_kata(c: char) -> char {
     }
 }
 
+fn is_hiragana(c: char) -> bool {
+    c >= '\u{3040}' && c <= '\u{309F}'
+}
+
+fn is_kanji(c: char) -> bool {
+    // Common CJK range
+    (c >= '\u{4E00}' && c <= '\u{9FFF}') ||
+    // CJK Extension A
+    (c >= '\u{3400}' && c <= '\u{4DBF}') ||
+    // CJK Extension B
+    (c >= '\u{20000}' && c <= '\u{2A6DF}')
+}
+
+fn contains_kanji(s: &str) -> bool {
+    s.chars().any(is_kanji)
+}
+
+/// Reconstructs the orthographic reading (Standard Kana) from the Surface and Phonetic Reading.
+/// 
+/// This solves the alignment problem where the dictionary provides phonetic readings (using long vowels 'ー')
+/// but the surface text uses standard orthography (using 'う', 'い', etc.).
+/// 
+/// Algorithm:
+/// 1. Scan backwards from the end of both strings.
+/// 2. If the Surface character is Kanji, stop scanning (trust the remaining Phonetic head).
+/// 3. If Surface (Hiragana) matches Phonetic (Katakana) OR matches a phonetic long vowel 'ー',
+///    adopt the Surface character (converted to Katakana) into the tail.
+/// 4. If mismatch, break.
+/// 5. Result = Remaining Phonetic Head + Reconstructed Tail.
+fn reconstruct_orthography(surface: &str, phonetic: &str) -> String {
+    let s_chars: Vec<char> = surface.chars().collect();
+    let p_chars: Vec<char> = phonetic.chars().collect();
+
+    let mut s_idx = s_chars.len() as isize - 1;
+    let mut p_idx = p_chars.len() as isize - 1;
+    
+    let mut tail_orthography = String::new();
+
+    while s_idx >= 0 && p_idx >= 0 {
+        let s_char = s_chars[s_idx as usize];
+        let p_char = p_chars[p_idx as usize];
+
+        // Anchor: If we hit a Kanji in surface, we stop trusting the surface structure 
+        // regarding reading, and trust the dictionary's remaining phonetic stem.
+        if is_kanji(s_char) {
+            break;
+        }
+
+        let s_kata = hira_to_kata(s_char);
+
+        // Check compatibility
+        let is_exact_match = s_kata == p_char;
+        
+        // Long vowel rule: Phonetic 'ー' can match Surface vowels (usually 'う' or 'い')
+        // e.g., Surface 'う' matches Phonetic 'ー' in "行こう" (Ikou) vs "イコー" (Ikoo)
+        let is_long_vowel_match = p_char == 'ー' && is_hiragana(s_char);
+
+        if is_exact_match || is_long_vowel_match {
+            // Adopt the Surface character (converted to Katakana) to preserve orthography
+            // e.g., adopt 'ウ' instead of 'ー'
+            tail_orthography.insert(0, s_kata);
+            s_idx -= 1;
+            p_idx -= 1;
+        } else {
+            // Mismatch (e.g., small tsu variations or completely different).
+            // Stop reconstruction to be safe.
+            break;
+        }
+    }
+
+    // The head is whatever is left in the Phonetic string
+    let head_phonetic: String = if p_idx >= 0 {
+        p_chars[0..=(p_idx as usize)].iter().collect()
+    } else {
+        "".to_string()
+    };
+
+    format!("{}{}", head_phonetic, tail_orthography)
+}
+
 fn build_ruby_segments(surface: &str, reading: &str) -> Vec<RubySegment> {
     if reading == "*" || surface == reading {
         return vec![RubySegment {
@@ -165,29 +245,37 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         let surface = token.surface.to_string();
         let details_vec: Vec<String> = token.details().iter().map(|s| s.to_string()).collect();
         
-        // details[4] corresponds to UniDic CSV Index 8: "Conjugation Type" (活用型).
-        // If it is "*", the word is likely a noun/particle that doesn't conjugate.
-        // If it is NOT "*", it is a verb/adjective/auxiliary that has a specific form.
-        let conjugation_type = details_vec.get(4).map(|s| s.as_str()).unwrap_or("*");
-        let is_conjugated = conjugation_type != "*";
-
-        let reading_idx = if is_conjugated {
-            // Case: Conjugated (Verb/Adj).
-            // Use Index 9 (CSV Index 13: Phonological Surface Form / 発音形出現形).
-            // Example: "し" -> "シ" (Correct), "走っ" -> "ハシッ" (Correct).
-            // If we used Lemma here, "し" would become "スル" (Incorrect).
-            9
+        // 1. If the word contains NO Kanji, do not generate ruby.
+        //    (Fixes "コンピュータ", "123", punctuation issues)
+        let ruby_segments = if !contains_kanji(&surface) {
+            vec![RubySegment {
+                text: surface.clone(),
+                ruby: "".to_string(),
+            }]
         } else {
-            // Case: Not Conjugated (Noun, etc).
-            // Use Index 6 (CSV Index 10: Lemma Reading / 語彙素読み).
-            // Example: "王様" -> "オウサマ" (Correct Orthography).
-            // If we used Phonological here, "王様" might become "オーサマ" (Incorrect for Ruby).
-            6
+            // 2. Determine base reading.
+            //    We primarily want Index 9 (Phonological Surface / 発音形出現形) because it handles conjugations correctly.
+            //    e.g. "し" -> "シ" (Index 9) vs "スル" (Index 6)
+            //    e.g. "行こう" -> "イコー" (Index 9) vs "イク" (Index 6)
+            let phonetic_idx = 9;
+            
+            // Fallback to Index 6 (Lemma) if Index 9 is missing
+            let phonetic = details_vec.get(phonetic_idx)
+                .filter(|s| s.as_str() != "*")
+                .map(|s| s.as_str())
+                .or_else(|| details_vec.get(6).map(|s| s.as_str()))
+                .unwrap_or("*");
+
+            // 3. Reconstruct Orthography
+            //    Align "行こう" (Surface) with "イコー" (Phonetic) to get "イコウ" (Ideal Reading).
+            let final_reading = if phonetic == "*" {
+                "*".to_string()
+            } else {
+                reconstruct_orthography(&surface, phonetic)
+            };
+
+            build_ruby_segments(&surface, &final_reading)
         };
-
-        let reading = details_vec.get(reading_idx).map(|s| s.as_str()).unwrap_or("*");
-
-        let ruby_segments = build_ruby_segments(&surface, reading);
 
         result_list.push(TokenInfo {
             surface,
