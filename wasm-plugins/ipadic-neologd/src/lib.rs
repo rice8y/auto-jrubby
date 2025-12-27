@@ -121,15 +121,11 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         Err(e) => return format!("Error: Invalid JSON: {}", e).into_bytes(),
     };
 
-    // 1. Get the system dictionary (cheap reference)
     let dictionary = get_dictionary().clone();
 
-    // 2. Load User Dictionary if provided
     let user_dictionary = if let Some(csv_data) = params.user_dict_csv {
-        // Create a builder using the metadata from the system dictionary
         let builder = DictionaryBuilder::new(dictionary.metadata.clone());
         
-        // Build the user dictionary from the CSV string bytes
         match UserDictionaryLoader::load_from_csv_data(builder, csv_data.as_bytes()) {
             Ok(ud) => Some(ud),
             Err(e) => return format!("Error: Failed to build user dictionary: {}", e).into_bytes(),
@@ -138,8 +134,6 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         None
     };
 
-    // 3. Create Segmenter and Tokenizer
-    // If a user dictionary is present, this creates a fresh tokenizer combining both.
     let segmenter = Segmenter::new(Mode::Normal, dictionary, user_dictionary);
     let tokenizer = Tokenizer::new(segmenter);
 
