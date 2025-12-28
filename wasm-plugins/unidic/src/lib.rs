@@ -49,11 +49,8 @@ fn is_hiragana(c: char) -> bool {
 }
 
 fn is_kanji(c: char) -> bool {
-    // Common CJK range
     (c >= '\u{4E00}' && c <= '\u{9FFF}') ||
-    // CJK Extension A
     (c >= '\u{3400}' && c <= '\u{4DBF}') ||
-    // CJK Extension B
     (c >= '\u{20000}' && c <= '\u{2A6DF}')
 }
 
@@ -61,18 +58,7 @@ fn contains_kanji(s: &str) -> bool {
     s.chars().any(is_kanji)
 }
 
-/// Reconstructs the orthographic reading (Standard Kana) from the Surface and Phonetic Reading.
-/// 
-/// This solves the alignment problem where the dictionary provides phonetic readings (using long vowels 'ー')
-/// but the surface text uses standard orthography (using 'う', 'い', etc.).
-/// 
-/// Algorithm:
-/// 1. Scan backwards from the end of both strings.
-/// 2. If the Surface character is Kanji, stop scanning (trust the remaining Phonetic head).
-/// 3. If Surface (Hiragana) matches Phonetic (Katakana) OR matches a phonetic long vowel 'ー',
-///    adopt the Surface character (converted to Katakana) into the tail.
-/// 4. If mismatch, break.
-/// 5. Result = Remaining Phonetic Head + Reconstructed Tail.
+/// Reconstructs the orthographic reading from Surface and Phonetic Reading.
 fn reconstruct_orthography(surface: &str, phonetic: &str) -> String {
     let s_chars: Vec<char> = surface.chars().collect();
     let p_chars: Vec<char> = phonetic.chars().collect();
@@ -86,35 +72,23 @@ fn reconstruct_orthography(surface: &str, phonetic: &str) -> String {
         let s_char = s_chars[s_idx as usize];
         let p_char = p_chars[p_idx as usize];
 
-        // Anchor: If we hit a Kanji in surface, we stop trusting the surface structure 
-        // regarding reading, and trust the dictionary's remaining phonetic stem.
         if is_kanji(s_char) {
             break;
         }
 
         let s_kata = hira_to_kata(s_char);
-
-        // Check compatibility
         let is_exact_match = s_kata == p_char;
-        
-        // Long vowel rule: Phonetic 'ー' can match Surface vowels (usually 'う' or 'い')
-        // e.g., Surface 'う' matches Phonetic 'ー' in "行こう" (Ikou) vs "イコー" (Ikoo)
         let is_long_vowel_match = p_char == 'ー' && is_hiragana(s_char);
 
         if is_exact_match || is_long_vowel_match {
-            // Adopt the Surface character (converted to Katakana) to preserve orthography
-            // e.g., adopt 'ウ' instead of 'ー'
             tail_orthography.insert(0, s_kata);
             s_idx -= 1;
             p_idx -= 1;
         } else {
-            // Mismatch (e.g., small tsu variations or completely different).
-            // Stop reconstruction to be safe.
             break;
         }
     }
 
-    // The head is whatever is left in the Phonetic string
     let head_phonetic: String = if p_idx >= 0 {
         p_chars[0..=(p_idx as usize)].iter().collect()
     } else {
@@ -221,57 +195,60 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
     let mut result_list: Vec<TokenInfo> = Vec::new();
     let mut cursor_byte = 0;
     let text_bytes = params.text.as_bytes();
-
     let dummy_details = vec!["*".to_string(); 17];
 
     for token in tokens.iter_mut() {
         if token.byte_start > cursor_byte {
             let gap_slice = &text_bytes[cursor_byte..token.byte_start];
             let gap_text = String::from_utf8_lossy(gap_slice).to_string();
-            
             let mut gap_details = dummy_details.clone();
             gap_details[0] = "Whitespace".to_string();
-
             result_list.push(TokenInfo {
                 surface: gap_text.clone(),
                 details: gap_details,
-                ruby_segments: vec![RubySegment {
-                    text: gap_text,
-                    ruby: "".to_string(),
-                }],
+                ruby_segments: vec![RubySegment { text: gap_text, ruby: "".to_string() }],
             });
         }
 
         let surface = token.surface.to_string();
         let details_vec: Vec<String> = token.details().iter().map(|s| s.to_string()).collect();
-        
-        // 1. If the word contains NO Kanji, do not generate ruby.
-        //    (Fixes "コンピュータ", "123", punctuation issues)
+
+        // 1. Safety Filter: No Kanji -> No Ruby
         let ruby_segments = if !contains_kanji(&surface) {
             vec![RubySegment {
                 text: surface.clone(),
                 ruby: "".to_string(),
             }]
         } else {
-            // 2. Determine base reading.
-            //    We primarily want Index 9 (Phonological Surface / 発音形出現形) because it handles conjugations correctly.
-            //    e.g. "し" -> "シ" (Index 9) vs "スル" (Index 6)
-            //    e.g. "行こう" -> "イコー" (Index 9) vs "イク" (Index 6)
-            let phonetic_idx = 9;
-            
-            // Fallback to Index 6 (Lemma) if Index 9 is missing
-            let phonetic = details_vec.get(phonetic_idx)
+            // 2. Logic Split: Conjugated vs Non-Conjugated
+            let conjugation_type = details_vec.get(4).map(|s| s.as_str()).unwrap_or("*");
+            let is_conjugated = conjugation_type != "*";
+
+            let (source_idx, needs_reconstruction) = if is_conjugated {
+                // Case: Verbs/Adjectives
+                // Use Index 9 (Phonological Surface) to get correct conjugated reading.
+                // Apply reconstruction to fix long vowels in the suffix.
+                (9, true)
+            } else {
+                // Case: Nouns/Particles
+                // Use Index 6 (Lemma Reading) to preserve standard orthography.
+                (6, false)
+            };
+
+            let raw_reading = details_vec.get(source_idx)
                 .filter(|s| s.as_str() != "*")
                 .map(|s| s.as_str())
+                // Fallback to Index 6 if intended source is unavailable
                 .or_else(|| details_vec.get(6).map(|s| s.as_str()))
                 .unwrap_or("*");
 
-            // 3. Reconstruct Orthography
-            //    Align "行こう" (Surface) with "イコー" (Phonetic) to get "イコウ" (Ideal Reading).
-            let final_reading = if phonetic == "*" {
+            // 3. Apply Reconstruction if flagged
+            let final_reading = if raw_reading == "*" {
                 "*".to_string()
+            } else if needs_reconstruction {
+                reconstruct_orthography(&surface, raw_reading)
             } else {
-                reconstruct_orthography(&surface, phonetic)
+                raw_reading.to_string()
             };
 
             build_ruby_segments(&surface, &final_reading)
@@ -289,17 +266,12 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
     if cursor_byte < text_bytes.len() {
         let gap_slice = &text_bytes[cursor_byte..];
         let gap_text = String::from_utf8_lossy(gap_slice).to_string();
-        
         let mut gap_details = dummy_details.clone();
         gap_details[0] = "Whitespace".to_string();
-
         result_list.push(TokenInfo {
             surface: gap_text.clone(),
             details: gap_details,
-            ruby_segments: vec![RubySegment {
-                text: gap_text,
-                ruby: "".to_string(),
-            }],
+            ruby_segments: vec![RubySegment { text: gap_text, ruby: "".to_string() }],
         });
     }
 
