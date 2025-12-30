@@ -14,9 +14,9 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 
 ## Usage
 
-<!-- > [!WARNING]
->  **Status as of December 10, 2025**  
-> The latest version **0.3.0** is not yet available on Typst Universe. Although the examples below use the `@preview` namespace, please install the package manually and use `@local` instead.
+> [!WARNING]
+>  **Status as of December 30, 2025**  
+> The latest version **0.3.3** is not yet available on Typst Universe. Although the examples below use the `@preview` namespace, please install the package manually and use `@local` instead.
 > To install and use:
 > ```bash
 > cd package
@@ -24,14 +24,14 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 > ```
 >
 > ```typst
-> #import "@local/auto-jrubby:0.3.0": *
-> ``` -->
+> #import "@local/auto-jrubby:0.3.3": *
+> ```
 
 ### Basic Furigana
 
 To automatically add readings to Japanese text:
 ```typst
-#import "@preview/auto-jrubby:0.3.0": *
+#import "@preview/auto-jrubby:0.3.3": *
 #set text(font: "Hiragino Sans", lang: "ja")
 
 #let sample = "東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です"
@@ -44,7 +44,7 @@ To automatically add readings to Japanese text:
 
 To debug or display the linguistic structure of the text:
 ```typst
-#import "@preview/auto-jrubby:0.3.0": *
+#import "@preview/auto-jrubby:0.3.3": *
 #set text(font: "Hiragino Sans", lang: "ja")
 
 #let sample = "東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です"
@@ -268,7 +268,7 @@ The processing workflow:
 >
 > 5. Import and use with `@local`:
 >    ```typst
->    #import "@local/auto-jrubby:0.3.0": *
+>    #import "@local/auto-jrubby:0.3.3": *
 >    #let sample = "東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です"
 >    #show-ruby(sample, dict: "ipadic-neologd")
 >    ```
