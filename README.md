@@ -14,19 +14,6 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 
 ## Usage
 
-> [!WARNING]
->  **Status as of December 30, 2025**  
-> The latest version **0.3.3** is not yet available on Typst Universe. Although the examples below use the `@preview` namespace, please install the package manually and use `@local` instead.
-> To install and use:
-> ```bash
-> cd package
-> just install
-> ```
->
-> ```typst
-> #import "@local/auto-jrubby:0.3.3": *
-> ```
-
 ### Basic Furigana
 
 To automatically add readings to Japanese text:
