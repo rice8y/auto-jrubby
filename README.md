@@ -262,4 +262,4 @@ The processing workflow:
 
 ## License
 
-This project is distributed under the AGPL-3.0-or-later License. See [LICENSE](https://www.google.com/search?q=LICENSE) for details.
+This project is distributed under the AGPL-3.0-or-later License. See [LICENSE](LICENSE) for details.
