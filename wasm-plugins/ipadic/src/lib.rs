@@ -21,6 +21,12 @@ struct InputParams {
     text: String,
     #[serde(default)]
     user_dict_csv: Option<String>,
+    #[serde(default = "default_kana")]
+    kana: String,
+}
+
+fn default_kana() -> String {
+    "hiragana".to_string()
 }
 
 #[derive(Serialize)]
@@ -39,6 +45,14 @@ struct TokenInfo {
 fn hira_to_kata(c: char) -> char {
     if c >= '\u{3041}' && c <= '\u{3096}' {
         std::char::from_u32(c as u32 + 0x60).unwrap()
+    } else {
+        c
+    }
+}
+
+fn kata_to_hira(c: char) -> char {
+    if c >= '\u{30a1}' && c <= '\u{30f6}' {
+        std::char::from_u32(c as u32 - 0x60).unwrap()
     } else {
         c
     }
@@ -141,8 +155,9 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
     let mut result_list: Vec<TokenInfo> = Vec::new();
     let mut cursor_byte = 0;
     let text_bytes = params.text.as_bytes();
-
     let dummy_details = vec!["*".to_string(); 9];
+
+    let to_hiragana = params.kana == "hiragana";
 
     for token in tokens.iter_mut() {
         if token.byte_start > cursor_byte {
@@ -164,10 +179,17 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
 
         let surface = token.surface.to_string();
         let details_vec: Vec<String> = token.details().iter().map(|s| s.to_string()).collect();
-    
         let reading = details_vec.get(7).map(|s| s.as_str()).unwrap_or("*");
 
-        let ruby_segments = build_ruby_segments(&surface, reading);
+        let mut ruby_segments = build_ruby_segments(&surface, reading);
+
+        if to_hiragana {
+            for seg in ruby_segments.iter_mut() {
+                if !seg.ruby.is_empty() {
+                    seg.ruby = seg.ruby.chars().map(kata_to_hira).collect();
+                }
+            }
+        }
 
         result_list.push(TokenInfo {
             surface,

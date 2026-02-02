@@ -21,6 +21,12 @@ struct InputParams {
     text: String,
     #[serde(default)]
     user_dict_csv: Option<String>,
+    #[serde(default = "default_kana")]
+    kana: String,
+}
+
+fn default_kana() -> String {
+    "hiragana".to_string()
 }
 
 #[derive(Serialize)]
@@ -44,6 +50,14 @@ fn hira_to_kata(c: char) -> char {
     }
 }
 
+fn kata_to_hira(c: char) -> char {
+    if c >= '\u{30a1}' && c <= '\u{30f6}' {
+        std::char::from_u32(c as u32 - 0x60).unwrap()
+    } else {
+        c
+    }
+}
+
 fn is_hiragana(c: char) -> bool {
     c >= '\u{3040}' && c <= '\u{309F}'
 }
@@ -58,7 +72,6 @@ fn contains_kanji(s: &str) -> bool {
     s.chars().any(is_kanji)
 }
 
-/// Reconstructs the orthographic reading from Surface and Phonetic Reading.
 fn reconstruct_orthography(surface: &str, phonetic: &str) -> String {
     let s_chars: Vec<char> = surface.chars().collect();
     let p_chars: Vec<char> = phonetic.chars().collect();
@@ -196,6 +209,8 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
     let mut cursor_byte = 0;
     let text_bytes = params.text.as_bytes();
     let dummy_details = vec!["*".to_string(); 17];
+    
+    let to_hiragana = params.kana == "hiragana";
 
     for token in tokens.iter_mut() {
         if token.byte_start > cursor_byte {
@@ -213,36 +228,27 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         let surface = token.surface.to_string();
         let details_vec: Vec<String> = token.details().iter().map(|s| s.to_string()).collect();
 
-        // 1. Safety Filter: No Kanji -> No Ruby
-        let ruby_segments = if !contains_kanji(&surface) {
+        let mut ruby_segments = if !contains_kanji(&surface) {
             vec![RubySegment {
                 text: surface.clone(),
                 ruby: "".to_string(),
             }]
         } else {
-            // 2. Logic Split: Conjugated vs Non-Conjugated
             let conjugation_type = details_vec.get(4).map(|s| s.as_str()).unwrap_or("*");
             let is_conjugated = conjugation_type != "*";
 
             let (source_idx, needs_reconstruction) = if is_conjugated {
-                // Case: Verbs/Adjectives
-                // Use Index 9 (Phonological Surface) to get correct conjugated reading.
-                // Apply reconstruction to fix long vowels in the suffix.
                 (9, true)
             } else {
-                // Case: Nouns/Particles
-                // Use Index 6 (Lemma Reading) to preserve standard orthography.
                 (6, false)
             };
 
             let raw_reading = details_vec.get(source_idx)
                 .filter(|s| s.as_str() != "*")
                 .map(|s| s.as_str())
-                // Fallback to Index 6 if intended source is unavailable
                 .or_else(|| details_vec.get(6).map(|s| s.as_str()))
                 .unwrap_or("*");
 
-            // 3. Apply Reconstruction if flagged
             let final_reading = if raw_reading == "*" {
                 "*".to_string()
             } else if needs_reconstruction {
@@ -253,6 +259,14 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
 
             build_ruby_segments(&surface, &final_reading)
         };
+        
+        if to_hiragana {
+            for seg in ruby_segments.iter_mut() {
+                if !seg.ruby.is_empty() {
+                    seg.ruby = seg.ruby.chars().map(kata_to_hira).collect();
+                }
+            }
+        }
 
         result_list.push(TokenInfo {
             surface,

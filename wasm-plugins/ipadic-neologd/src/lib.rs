@@ -21,6 +21,12 @@ struct InputParams {
     text: String,
     #[serde(default)]
     user_dict_csv: Option<String>,
+    #[serde(default = "default_kana")]
+    kana: String,
+}
+
+fn default_kana() -> String {
+    "hiragana".to_string()
 }
 
 #[derive(Serialize)]
@@ -42,6 +48,14 @@ struct TokenInfo {
 fn hira_to_kata(c: char) -> char {
     if c >= '\u{3041}' && c <= '\u{3096}' {
         std::char::from_u32(c as u32 + 0x60).unwrap()
+    } else {
+        c
+    }
+}
+
+fn kata_to_hira(c: char) -> char {
+    if c >= '\u{30a1}' && c <= '\u{30f6}' {
+        std::char::from_u32(c as u32 - 0x60).unwrap()
     } else {
         c
     }
@@ -125,7 +139,6 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
 
     let user_dictionary = if let Some(csv_data) = params.user_dict_csv {
         let builder = DictionaryBuilder::new(dictionary.metadata.clone());
-        
         match UserDictionaryLoader::load_from_csv_data(builder, csv_data.as_bytes()) {
             Ok(ud) => Some(ud),
             Err(e) => return format!("Error: Failed to build user dictionary: {}", e).into_bytes(),
@@ -145,6 +158,8 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
     let mut result_list: Vec<TokenInfo> = Vec::new();
     let mut cursor_byte = 0;
     let text_bytes = params.text.as_bytes();
+
+    let to_hiragana = params.kana == "hiragana";
 
     for token in tokens.iter_mut() {
         if token.byte_start > cursor_byte {
@@ -169,9 +184,17 @@ pub fn analyze(input_bytes: &[u8]) -> Vec<u8> {
         let get_detail = |idx: usize| details.get(idx).map(|s| s.as_ref()).unwrap_or("*").to_string();
         
         let pos = get_detail(0);
-        let reading = get_detail(7);
+        let reading = get_detail(7); 
 
-        let ruby_segments = build_ruby_segments(&surface, &reading);
+        let mut ruby_segments = build_ruby_segments(&surface, &reading);
+
+        if to_hiragana {
+            for seg in ruby_segments.iter_mut() {
+                if !seg.ruby.is_empty() {
+                    seg.ruby = seg.ruby.chars().map(kata_to_hira).collect();
+                }
+            }
+        }
 
         result_list.push(TokenInfo {
             surface,
