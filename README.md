@@ -108,17 +108,15 @@ Renders a table displaying the morphological breakdown of the text.
 #let show-analysis-table(
   input-text,
   user-dict: none,
-  dict: "ipadic",
-  kana: "hiragana"
+  dict: "ipadic"
 )
 ```
 
 **Parameters:**
 
-* `input-text` (string): The text to analyze.
-* `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
-* `dict` (string): The dictionary to use. Must be one of: `"ipadic"` (default) or `"unidic"`.
-* `kana` (string): The script used for internal ruby segmentation. Defaults to `"hiragana"`.
+- `input-text` (string): The text to analyze.
+- `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
+- `dict` (string): The dictionary to use. Must be one of: `"ipadic"` (default) or `"unidic"`.
 
 **Table Columns:**
 
@@ -166,8 +164,7 @@ Low-level function that returns the raw JSON data from the WASM plugin. Useful i
 #let tokenize(
   input-text,
   user-dict: none,
-  dict: "ipadic",
-  kana: "hiragana"
+  dict: "ipadic"
 )
 ```
 
@@ -176,7 +173,6 @@ Low-level function that returns the raw JSON data from the WASM plugin. Useful i
 - `input-text` (string): The text to tokenize.
 - `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
 - `dict` (string): The dictionary to use. Must be one of: `"ipadic"` or `"unidic"`.
-- `kana` (string): The script to use for the generated `ruby_segments`. Defaults to `"hiragana"`.
 
 **Returns:** An array of dictionaries containing:
 
