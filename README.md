@@ -10,6 +10,7 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 - **Smart Okurigana Alignment:** Intelligent handling of mixed Kanji/Hiragana words (e.g., `食べる` is rendered with ruby `た` over `食`, leaving `べる` untouched).
 - **Morphological Analysis Table:** Visualize the text structure (Part of Speech, Detailed POS, Readings, Base forms) via a formatted data table.
 - **Customizable Styling:** Supports custom ruby sizing and positioning via the `rubby` package backend.
+- **Flexible Script Output:** Choose between **Hiragana** (default) or **Katakana** for the ruby text.
 - **High Performance:** Powered by a Rust WASM plugin using **Lindera** for fast and accurate tokenization.
 
 ## Usage
@@ -18,27 +19,49 @@ It leverages a Rust-based WASM plugin to tokenize text using [Lindera](https://g
 
 To automatically add readings to Japanese text:
 ```typst
-#import "@preview/auto-jrubby:0.3.3": *
+#import "@preview/auto-jrubby:0.3.4": *
+#set page(width: auto, height: auto, margin: 0.5cm)
 #set text(font: "Hiragino Sans", lang: "ja")
 
 #let sample = "東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です"
 #show-ruby(sample)
 ```
 
-![sample](./package/images/sample.png)
+
+![Basic Furigana](package/images/sample01.png)
 
 ### Morphological Analysis Table
 
 To debug or display the linguistic structure of the text:
+
 ```typst
-#import "@preview/auto-jrubby:0.3.3": *
+#import "@preview/auto-jrubby:0.3.4": *
+#set page(width: auto, height: auto, margin: 0.5cm)
 #set text(font: "Hiragino Sans", lang: "ja")
 
 #let sample = "東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です"
 #show-analysis-table(sample)
 ```
 
-![table](./package/images/table.png)
+![Morphological Analysis Table](package/images/sample02.png)
+
+### Kana Selection
+
+You can choose to output ruby in Hiragana (default) or Katakana:
+
+```typst
+#import "@preview/auto-jrubby:0.3.4": *
+#set page(width: auto, height: auto, margin: 0.5cm)
+
+#let sample = "東京スカイツリーの高さは634mです"
+
+// Default (Hiragana)
+#show-ruby(sample)
+// Katakana
+#show-ruby(sample, kana: "katakana")
+```
+
+![Kana Selection](package/images/sample03.png)
 
 ## API Reference
 
@@ -53,7 +76,8 @@ Renders the input text with automatic furigana.
   leading: 1.5em,
   ruby-func: auto,
   user-dict: none,
-  dict: "ipadic"
+  dict: "ipadic",
+  kana: "hiragana"
 )
 ```
 
@@ -63,15 +87,18 @@ Renders the input text with automatic furigana.
 - `size` (length): The font size of the ruby text. Defaults to `0.5em`.
 - `leading` (length): The vertical space between lines to accommodate ruby text. Defaults to `1.5em`.
 - `ruby-func` (function | auto): A custom ruby function from the `rubby` package.
-  - If `auto`, it uses the default configuration (`get-ruby(size: size)`).
-  - If provided, it allows advanced customization of ruby positioning (e.g., specific `pos` or `alignment`).
+- If `auto`, it uses the default configuration (`get-ruby(size: size)`).
+- If provided, it allows advanced customization of ruby positioning (e.g., specific `pos` or `alignment`).
 - `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
-  - If `string`: A CSV-formatted string with custom dictionary entries.
-  - If `array`: An array of arrays, where each inner array represents a CSV row.
-  - If `none`: No user dictionary is used.
+- If `string`: A CSV-formatted string with custom dictionary entries.
+- If `array`: An array of arrays, where each inner array represents a CSV row.
+- If `none`: No user dictionary is used.
 - `dict` (string): The dictionary to use for tokenization. Must be one of:
-  - `"ipadic"` (default): Standard Japanese dictionary
-  - `"unidic"`: Alternative dictionary with different grammatical analysis
+- `"ipadic"` (default): Standard Japanese dictionary
+- `"unidic"`: Alternative dictionary with different grammatical analysis
+- `kana` (string): The script to use for the ruby text. Must be one of:
+- `"hiragana"` (default): Converts dictionary readings to Hiragana.
+- `"katakana"`: Uses Katakana readings.
 
 ### `show-analysis-table`
 
@@ -81,15 +108,17 @@ Renders a table displaying the morphological breakdown of the text.
 #let show-analysis-table(
   input-text,
   user-dict: none,
-  dict: "ipadic"
+  dict: "ipadic",
+  kana: "hiragana"
 )
-````
+```
 
 **Parameters:**
 
-  - `input-text` (string): The text to analyze.
-  - `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
-  - `dict` (string): The dictionary to use. Must be one of: `"ipadic"` (default) or `"unidic"`.
+* `input-text` (string): The text to analyze.
+* `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
+* `dict` (string): The dictionary to use. Must be one of: `"ipadic"` (default) or `"unidic"`.
+* `kana` (string): The script used for internal ruby segmentation. Defaults to `"hiragana"`.
 
 **Table Columns:**
 
@@ -97,28 +126,28 @@ The columns displayed depend on the selected `dict`.
 
 **If `dict: "ipadic"` (10 columns):**
 
-1.  **Surface Form (表層形):** The word as it appears in the text.
-2.  **Part of Speech (品詞):** Grammatical category (Noun, Verb, etc.).
-3.  **POS Subcategory 1 (品詞細分類1)**
-4.  **POS Subcategory 2 (品詞細分類2)**
-5.  **POS Subcategory 3 (品詞細分類3)**
-6.  **Conjugation Form (活用形)**
-7.  **Conjugation Type (活用型)**
-8.  **Base Form (原形):** The dictionary form of the word.
-9.  **Reading (読み):** Katakana reading.
+1. **Surface Form (表層形):** The word as it appears in the text.
+2. **Part of Speech (品詞):** Grammatical category (Noun, Verb, etc.).
+3. **POS Subcategory 1 (品詞細分類1)**
+4. **POS Subcategory 2 (品詞細分類2)**
+5. **POS Subcategory 3 (品詞細分類3)**
+6. **Conjugation Form (活用形)**
+7. **Conjugation Type (活用型)**
+8. **Base Form (原形):** The dictionary form of the word.
+9. **Reading (読み):** Katakana reading.
 10. **Pronunciation (発音)**
 
 **If `dict: "unidic"` (18 columns):**
 
-1.  **Surface Form (表層形)**
-2.  **POS Major (品詞大分類)**
-3.  **POS Medium (品詞中分類)**
-4.  **POS Minor (品詞小分類)**
-5.  **POS Fine (品詞細分類)**
-6.  **Conjugation Type (活用型)**
-7.  **Conjugation Form (活用形)**
-8.  **Lexeme Reading (語彙素読み)**
-9.  **Lexeme (語彙素)**
+1. **Surface Form (表層形)**
+2. **POS Major (品詞大分類)**
+3. **POS Medium (品詞中分類)**
+4. **POS Minor (品詞小分類)**
+5. **POS Fine (品詞細分類)**
+6. **Conjugation Type (活用型)**
+7. **Conjugation Form (活用形)**
+8. **Lexeme Reading (語彙素読み)**
+9. **Lexeme (語彙素)**
 10. **Orthographic Surface (書字形出現形)**
 11. **Phonological Surface (発音形出現形)**
 12. **Orthographic Base (書字形基本形)**
@@ -137,22 +166,24 @@ Low-level function that returns the raw JSON data from the WASM plugin. Useful i
 #let tokenize(
   input-text,
   user-dict: none,
-  dict: "ipadic"
+  dict: "ipadic",
+  kana: "hiragana"
 )
 ```
 
 **Parameters:**
 
-  - `input-text` (string): The text to tokenize.
-  - `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
-  - `dict` (string): The dictionary to use. Must be one of: `"ipadic"` or `"unidic"`.
+- `input-text` (string): The text to tokenize.
+- `user-dict` (string | array | none): Optional user dictionary for custom tokenization.
+- `dict` (string): The dictionary to use. Must be one of: `"ipadic"` or `"unidic"`.
+- `kana` (string): The script to use for the generated `ruby_segments`. Defaults to `"hiragana"`.
 
 **Returns:** An array of dictionaries containing:
 
-  - `surface` (string): The surface form of the token.
-  - `details` (array of strings): The raw detailed information for the token. The content and length depend on the dictionary used (e.g., POS, conjugation, reading, etc.).
-  - `ruby_segments` (array of dictionaries): A pre-calculated list of segments for furigana, where each item has `text` and `ruby` fields.
-  
+- `surface` (string): The surface form of the token.
+- `details` (array of strings): The raw detailed information for the token. The content and length depend on the dictionary used (e.g., POS, conjugation, reading, etc.).
+- `ruby_segments` (array of dictionaries): A pre-calculated list of segments for furigana, where each item has `text` and `ruby` fields.
+
 ## User Dictionary Format
 
 The user dictionary allows you to define custom word segmentation and readings. It uses a simple CSV format with three columns:
@@ -170,46 +201,48 @@ The user dictionary allows you to define custom word segmentation and readings. 
 **Method 1: Inline string**
 
 ```typst
-#let user-dict-str = "東京スカイツリー,カスタム名詞,トウキョウスカイツリー
-東武スカイツリーライン,カスタム名詞,トウブスカイツリーライン
-とうきょうスカイツリー駅,カスタム名詞,トウキョウスカイツリーエキ"
+#let sample = "東京タワーの最寄駅は赤羽橋駅です"
+#let user-dict-str = "赤羽橋駅,カスタム名詞,アカバネバシエキ"
 
-#show-ruby("東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です", user-dict: user-dict-str)
+#show-ruby(sample)
+#show-ruby(sample, user-dict: user-dict-str)
 ```
 
 **Method 2: Array of arrays**
 
 ```typc
+#let sample = "東京タワーの最寄駅は赤羽橋駅です"
 #let user-dict-array = (
-  ("東京スカイツリー", "カスタム名詞", "トウキョウスカイツリー"),
-  ("東武スカイツリーライン", "カスタム名詞", "トウブスカイツリーライン"),
-  ("とうきょうスカイツリー駅", "カスタム名詞", "トウキョウスカイツリーエキ")
+  ("赤羽橋駅", "カスタム名詞", "アカバネバシエキ")
 )
 
-#show-ruby("東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です", user-dict: user-dict-array)
+#show-ruby(sample)
+#show-ruby(sample, user-dict: user-dict-array)
 ```
 
 **Method 3: Load from CSV file**
 
 ```bash
 $ cat user_dict.csv
-東京スカイツリー,カスタム名詞,トウキョウスカイツリー
-東武スカイツリーライン,カスタム名詞,トウブスカイツリーライン
-とうきょうスカイツリー駅,カスタム名詞,トウキョウスカイツリーエキ
+赤羽橋駅,カスタム名詞,アカバネバシエキ
 ```
 
 ```typst
+#let sample = "東京タワーの最寄駅は赤羽橋駅です"
 #let user-dict-from-file = csv("user_dict.csv")
 
-#show-ruby("東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です", user-dict: user-dict-from-file)
+#show-ruby(sample)
+#show-ruby(sample, user-dict: user-dict-from-file)
 ```
+
+![User Dictionary Format](package/images/sample04.png)
 
 ## Under the Hood
 
 This package uses **Lindera** (a Rust port of Kuromoji) with two available dictionary options:
 
-- **IPADIC**: Standard Japanese morphological dictionary
-- **UniDic**: Alternative dictionary with different part-of-speech classifications
+* **IPADIC**: Standard Japanese morphological dictionary
+* **UniDic**: Alternative dictionary with different part-of-speech classifications
 
 The processing workflow:
 
@@ -220,45 +253,43 @@ The processing workflow:
 
 ## Optional: Enabling IPADIC-NEologd
 
-
 > [!NOTE]
-> **IPADIC-NEologd Support**  
-> IPADIC-NEologd (an extended dictionary with contemporary terms and named entities) has been removed from the default distribution due to its large file size. However, you can manually enable it if needed:
->
+> **IPADIC-NEologd Support** > IPADIC-NEologd (an extended dictionary with contemporary terms and named entities) has been removed from the default distribution due to its large file size. However, you can manually enable it if needed:
 > 1. Navigate to `./wasm-plugins/ipadic-neologd` and build the WASM module:
->    ```bash
->    cargo build --target wasm32-unknown-unknown --release
->    ```
->
+> ```bash
+> cargo build --target wasm32-unknown-unknown --release
+> ```
+> 
 > 2. Copy the built WASM file to the package directory:
->    ```bash
->    cp ./target/wasm32-unknown-unknown/release/ipadic_neologd.wasm ../../package/ipadic_neologd.wasm
->    ```
->
+> ```bash
+> cp ./target/wasm32-unknown-unknown/release/ipadic_neologd.wasm ../../package/ipadic_neologd.wasm
+> ```
+> 
 > 3. Navigate to `./package` and update `./package/lib.typ` to allow the `ipadic-neologd` option. Change:
->    ```typst
->    if dict not in ("ipadic", "unidic") {
->      panic("dict must be one of: ipadic, unidic")
->    }
->    ```
->    to:
->    ```typst
->    if dict not in ("ipadic", "ipadic-neologd", "unidic") {
->      panic("dict must be one of: ipadic, ipadic-neologd, unidic")
->    }
->    ```
->
+> ```typst
+> if dict not in ("ipadic", "unidic") {
+>   panic("dict must be one of: ipadic, unidic")
+> }
+> ```
+> 
+> to:
+> ```typst
+> if dict not in ("ipadic", "ipadic-neologd", "unidic") {
+>   panic("dict must be one of: ipadic, ipadic-neologd, unidic")
+> }
+> ```
+> 
 > 4. Install the package locally:
->    ```bash
->    just install
->    ```
->
+> ```bash
+> just install
+> ```
+> 
 > 5. Import and use with `@local`:
->    ```typst
->    #import "@local/auto-jrubby:0.3.3": *
->    #let sample = "東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です"
->    #show-ruby(sample, dict: "ipadic-neologd")
->    ```
+> ```typst
+> #import "@local/auto-jrubby:0.3.4": *
+> #let sample = "東京スカイツリーの最寄り駅はとうきょうスカイツリー駅です"
+> #show-ruby(sample, dict: "ipadic-neologd")
+> ```
 
 ## License
 
