@@ -1,6 +1,6 @@
 [package]
 name = "auto-jrubby"
-version = "0.3.4"
+version = "0.3.5-dev"
 entrypoint = "lib.typ"
 authors = ["Eito Yoneyama"]
 license = "AGPL-3.0-or-later"
